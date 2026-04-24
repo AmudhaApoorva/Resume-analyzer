@@ -175,6 +175,6 @@ if file:
 # -------------------------------
 st.markdown("""
 ---
-👨‍💻 Developed by Venu Banothu  
+👨‍💻 Developed by Amudha Apoorva
 🔗 AI Resume Analyzer Project
 """)
