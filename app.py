@@ -8,24 +8,16 @@ from reportlab.lib.styles import getSampleStyleSheet
 # -------------------------------
 # PAGE CONFIG
 # -------------------------------
-st.set_page_config(page_title="AI Resume Analyzer Pro", page_icon="📄")
+st.set_page_config(page_title="ResumeAI Pro", page_icon="📄")
 
 # -------------------------------
-# CLEAN LIGHT UI STYLE
+# UI STYLE (LIGHT PROFESSIONAL)
 # -------------------------------
 st.markdown("""
 <style>
-.stApp {
-    background-color: #ffffff;
-    color: #000000;
-}
-h1, h2, h3 {
-    color: #2c3e50;
-}
-.stButton>button {
-    border-radius: 10px;
-    padding: 8px 12px;
-}
+.stApp {background-color:#ffffff; color:#000000;}
+h1 {text-align:center;}
+.stButton>button {border-radius:10px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -62,40 +54,60 @@ def generate_pdf(role, score, matched, missing):
     content.append(Paragraph("AI Resume Analysis Report", styles['Title']))
     content.append(Paragraph(f"Role: {role}", styles['Normal']))
     content.append(Paragraph(f"Score: {score}%", styles['Normal']))
-    content.append(Paragraph(f"Matched: {', '.join(matched)}", styles['Normal']))
-    content.append(Paragraph(f"Missing: {', '.join(missing)}", styles['Normal']))
+    content.append(Paragraph(f"Matched Skills: {', '.join(matched)}", styles['Normal']))
+    content.append(Paragraph(f"Missing Skills: {', '.join(missing)}", styles['Normal']))
 
     doc.build(content)
     return file
 
 # -------------------------------
-# JOB ROLES
+# MULTI-DOMAIN ROLES
 # -------------------------------
 roles = {
+
+    # 💻 TECH
+    "Software Engineer":["python","java","c++","git"],
     "Data Scientist":["python","machine learning","pandas","numpy","sql"],
-    "Web Developer":["html","css","javascript","react"],
-    "Software Engineer":["java","c++","python","git"],
-    "Data Analyst":["excel","sql","python","pandas"],
     "AI Engineer":["python","deep learning","tensorflow"],
-    "DevOps Engineer":["docker","kubernetes","aws","linux"],
-    "Cloud Engineer":["aws","azure","cloud","linux"],
     "Cyber Security Analyst":["networking","cyber security","linux"],
-    "Full Stack Developer":["html","css","javascript","react","nodejs"]
+
+    # 🏭 CORE ENGINEERING
+    "Mechanical Engineer":["cad","solidworks","manufacturing"],
+    "Civil Engineer":["autocad","construction","surveying"],
+    "Electrical Engineer":["circuits","electronics","control systems"],
+
+    # 💼 MANAGEMENT
+    "Business Analyst":["excel","sql","communication"],
+    "Marketing Manager":["seo","marketing","analytics"],
+    "HR Manager":["recruitment","communication","management"],
+    "Finance Analyst":["finance","excel","accounting"],
+
+    # 🎨 CREATIVE
+    "UI/UX Designer":["figma","design","prototyping"],
+    "Graphic Designer":["photoshop","illustrator","design"],
+    "Content Writer":["writing","seo","communication"]
 }
 
 # -------------------------------
-# UI
+# UI HEADER
 # -------------------------------
-st.title("📄 AI Resume Analyzer Pro")
-st.write("🚀 Upload resume → get score → improve instantly")
+st.markdown("""
+# 📄 ResumeAI Pro  
+### 🚀 Multi-Domain Resume Analyzer  
+---
+""")
 
-file = st.file_uploader("Upload Resume", type=["pdf"])
+# -------------------------------
+# INPUT
+# -------------------------------
+file = st.file_uploader("📤 Upload Resume (PDF)", type=["pdf"])
 role = st.selectbox("🎯 Select Job Role", list(roles.keys()))
 
 # -------------------------------
-# MAIN LOGIC
+# MAIN
 # -------------------------------
 if file:
+
     text = extract_text_from_pdf(file)
     found = extract_skills(text)
 
@@ -106,23 +118,28 @@ if file:
     score, matched = match_score(found, required)
     missing = set(required) - set(found)
 
-    # Dashboard
-    c1,c2,c3 = st.columns(3)
-    c1.metric("Score", f"{score}%")
-    c2.metric("Skills Found", len(found))
-    c3.metric("Missing", len(missing))
+    # -------------------------------
+    # DASHBOARD
+    # -------------------------------
+    c1, c2, c3 = st.columns(3)
+    c1.metric("📊 Score", f"{score}%")
+    c2.metric("✅ Skills Found", len(found))
+    c3.metric("❌ Missing", len(missing))
 
-    # Progress
     st.progress(int(score))
 
-    # Skills
+    # -------------------------------
+    # SKILLS
+    # -------------------------------
     st.subheader("🎯 Matched Skills")
     st.write(list(matched) if matched else "None")
 
     st.subheader("💡 Missing Skills")
     st.write(list(missing))
 
-    # Graph (professional)
+    # -------------------------------
+    # GRAPH
+    # -------------------------------
     st.subheader("📊 Skill Gap Analysis")
     df = pd.DataFrame({
         "Category":["Matched","Missing"],
@@ -130,21 +147,34 @@ if file:
     })
     st.bar_chart(df.set_index("Category"))
 
-    # AI Suggestions
+    # -------------------------------
+    # AI SUGGESTIONS
+    # -------------------------------
     st.subheader("🤖 Suggestions")
 
     if score > 80:
-        st.success("Excellent resume! 🎉")
+        st.success("Excellent! You are job-ready 🎉")
     elif score > 50:
-        st.info("Good, but improve missing skills")
+        st.info("Good, improve missing skills")
     else:
-        st.error("Needs improvement")
+        st.error("Needs improvement for this role")
 
     for s in missing:
         st.write(f"👉 Learn {s} & add projects")
 
-    # PDF
+    # -------------------------------
+    # PDF DOWNLOAD
+    # -------------------------------
     pdf = generate_pdf(role, score, matched, missing)
 
     with open(pdf,"rb") as f:
-        st.download_button("📄 Download PDF", f, file_name="report.pdf")
+        st.download_button("📄 Download Report", f, file_name="resume_report.pdf")
+
+# -------------------------------
+# FOOTER
+# -------------------------------
+st.markdown("""
+---
+👨‍💻 Developed by Venu Banothu  
+🔗 AI Resume Analyzer Project
+""")
