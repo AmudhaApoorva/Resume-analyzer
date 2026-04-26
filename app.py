@@ -1,5 +1,6 @@
 import streamlit as st
 import pdfplumber
+import io
 from skills import SKILLS
 import pandas as pd
 from reportlab.platypus import SimpleDocTemplate, Paragraph
@@ -11,7 +12,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 st.set_page_config(page_title="ResumeAI Pro", page_icon="📄")
 
 # -------------------------------
-# UI STYLE (LIGHT PROFESSIONAL)
+# UI STYLE
 # -------------------------------
 st.markdown("""
 <style>
@@ -26,11 +27,18 @@ h1 {text-align:center;}
 # -------------------------------
 def extract_text_from_pdf(file):
     text = ""
-    with pdfplumber.open(file) as pdf:
-        for page in pdf.pages:
-            content = page.extract_text()
-            if content:
-                text += content + " "
+    try:
+        pdf_bytes = file.read()
+        pdf_stream = io.BytesIO(pdf_bytes)
+
+        with pdfplumber.open(pdf_stream) as pdf:
+            for page in pdf.pages:
+                content = page.extract_text()
+                if content:
+                    text += content + " "
+    except:
+        return ""
+    
     return text.lower()
 
 def extract_skills(text):
@@ -61,7 +69,7 @@ def generate_pdf(role, score, matched, missing):
     return file
 
 # -------------------------------
-# MULTI-DOMAIN ROLES
+# ROLES (MULTI-DOMAIN)
 # -------------------------------
 roles = {
 
@@ -71,7 +79,7 @@ roles = {
     "AI Engineer":["python","deep learning","tensorflow"],
     "Cyber Security Analyst":["networking","cyber security","linux"],
 
-    # 🏭 CORE ENGINEERING
+    # 🏭 CORE
     "Mechanical Engineer":["cad","solidworks","manufacturing"],
     "Civil Engineer":["autocad","construction","surveying"],
     "Electrical Engineer":["circuits","electronics","control systems"],
@@ -89,7 +97,7 @@ roles = {
 }
 
 # -------------------------------
-# UI HEADER
+# HEADER
 # -------------------------------
 st.markdown("""
 # 📄 ResumeAI Pro  
@@ -108,73 +116,70 @@ role = st.selectbox("🎯 Select Job Role", list(roles.keys()))
 # -------------------------------
 if file:
 
-    text = extract_text_from_pdf(file)
-    found = extract_skills(text)
+    st.success("✅ File uploaded successfully")
 
-    st.subheader("✅ Extracted Skills")
-    st.success(", ".join(found) if found else "No skills found")
+    with st.spinner("🔄 Analyzing resume..."):
+        text = extract_text_from_pdf(file)
 
-    required = roles[role]
-    score, matched = match_score(found, required)
-    missing = set(required) - set(found)
-
-    # -------------------------------
-    # DASHBOARD
-    # -------------------------------
-    c1, c2, c3 = st.columns(3)
-    c1.metric("📊 Score", f"{score}%")
-    c2.metric("✅ Skills Found", len(found))
-    c3.metric("❌ Missing", len(missing))
-
-    st.progress(int(score))
-
-    # -------------------------------
-    # SKILLS
-    # -------------------------------
-    st.subheader("🎯 Matched Skills")
-    st.write(list(matched) if matched else "None")
-
-    st.subheader("💡 Missing Skills")
-    st.write(list(missing))
-
-    # -------------------------------
-    # GRAPH
-    # -------------------------------
-    st.subheader("📊 Skill Gap Analysis")
-    df = pd.DataFrame({
-        "Category":["Matched","Missing"],
-        "Count":[len(matched),len(missing)]
-    })
-    st.bar_chart(df.set_index("Category"))
-
-    # -------------------------------
-    # AI SUGGESTIONS
-    # -------------------------------
-    st.subheader("🤖 Suggestions")
-
-    if score > 80:
-        st.success("Excellent! You are job-ready 🎉")
-    elif score > 50:
-        st.info("Good, improve missing skills")
+    if not text.strip():
+        st.error("❌ Could not read PDF. Try another file.")
     else:
-        st.error("Needs improvement for this role")
+        found = extract_skills(text)
 
-    for s in missing:
-        st.write(f"👉 Learn {s} & add projects")
+        st.subheader("✅ Extracted Skills")
+        st.success(", ".join(found) if found else "No skills found")
 
-    # -------------------------------
-    # PDF DOWNLOAD
-    # -------------------------------
-    pdf = generate_pdf(role, score, matched, missing)
+        required = roles[role]
+        score, matched = match_score(found, required)
+        missing = set(required) - set(found)
 
-    with open(pdf,"rb") as f:
-        st.download_button("📄 Download Report", f, file_name="resume_report.pdf")
+        # Dashboard
+        c1, c2, c3 = st.columns(3)
+        c1.metric("📊 Score", f"{score}%")
+        c2.metric("✅ Skills Found", len(found))
+        c3.metric("❌ Missing", len(missing))
+
+        st.progress(int(score))
+
+        # Skills
+        st.subheader("🎯 Matched Skills")
+        st.write(list(matched) if matched else "None")
+
+        st.subheader("💡 Missing Skills")
+        st.write(list(missing))
+
+        # Graph
+        st.subheader("📊 Skill Gap Analysis")
+        df = pd.DataFrame({
+            "Category":["Matched","Missing"],
+            "Count":[len(matched),len(missing)]
+        })
+        st.bar_chart(df.set_index("Category"))
+
+        # Suggestions
+        st.subheader("🤖 Suggestions")
+
+        if score > 80:
+            st.success("Excellent! You are job-ready 🎉")
+        elif score > 50:
+            st.info("Good, improve missing skills")
+        else:
+            st.error("Needs improvement for this role")
+
+        for s in missing:
+            st.write(f"👉 Learn {s} & add projects")
+
+        # PDF
+        pdf = generate_pdf(role, score, matched, missing)
+
+        with open(pdf,"rb") as f:
+            st.download_button("📄 Download Report", f, file_name="resume_report.pdf")
 
 # -------------------------------
 # FOOTER
 # -------------------------------
 st.markdown("""
 ---
-👨‍💻 Developed by Amudha Apoorva
-🔗 AI Resume Analyzer Project
+### 👨‍💻 Developed by AMUDHA APOORVA  
+🚀 AI Resume Analyzer Project  
 """)
